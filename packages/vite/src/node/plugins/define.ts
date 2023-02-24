@@ -74,9 +74,9 @@ export function definePlugin(config: ResolvedConfig): Plugin {
     })
   }
 
-  function generatePattern(
-    ssr: boolean,
-  ): [Record<string, string | undefined>, RegExp | null] {
+  function createReplacements(
+    ssr: boolean
+  ): Record<string, string> {
     const replaceProcessEnv = !ssr || config.ssr?.target === 'webworker'
 
     const replacements: Record<string, string> = {
@@ -90,7 +90,12 @@ export function definePlugin(config: ResolvedConfig): Plugin {
     if (isBuild && !replaceProcessEnv) {
       replacements['__vite_process_env_NODE_ENV'] = 'process.env.NODE_ENV'
     }
+    return replacements
+  }
 
+  function generatePattern(
+    replacements: Record<string, string>
+  ): [Record<string, string | undefined>, RegExp | null] {
     const replacementsKeys = Object.keys(replacements)
     const pattern = replacementsKeys.length
       ? new RegExp(
@@ -112,20 +117,30 @@ export function definePlugin(config: ResolvedConfig): Plugin {
     return [replacements, pattern]
   }
 
-  const defaultPattern = generatePattern(false)
-  const ssrPattern = generatePattern(true)
+  const defaultPattern = generatePattern(createReplacements(false))
+  const ssrPattern = generatePattern(createReplacements(true))
+  const processNodeEnvPattern = generatePattern(processNodeEnv)
+
+  function getPattern(ssr: boolean) {
+    if (ssr) return ssrPattern
+
+    // for non-SSR dev we inject actual global defines other than process.env.NODE_ENV
+    // in the vite client to avoid the transform cost.
+    // replace process.env.NODE_ENV instead of defining a global
+    // for it to avoid shimming a `process` object during dev,
+    // avoiding inconsistencies between dev and build
+    if (!isBuild) {
+      return processNodeEnvPattern
+    }
+
+    return defaultPattern
+  }
 
   return {
     name: 'vite:define',
 
     transform(code, id, options) {
       const ssr = options?.ssr === true
-      if (!ssr && !isBuild) {
-        // for dev we inject actual global defines in the vite client to
-        // avoid the transform cost.
-        return
-      }
-
       if (
         // exclude html, css and static assets for performance
         isHTMLRequest(id) ||
@@ -136,7 +151,7 @@ export function definePlugin(config: ResolvedConfig): Plugin {
         return
       }
 
-      const [replacements, pattern] = ssr ? ssrPattern : defaultPattern
+      const [replacements, pattern] = getPattern(ssr);
 
       if (!pattern) {
         return null

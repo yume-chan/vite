@@ -61,15 +61,6 @@ export function clientInjectionsPlugin(config: ResolvedConfig): Plugin {
           .replace(`__HMR_BASE__`, JSON.stringify(hmrBase))
           .replace(`__HMR_TIMEOUT__`, JSON.stringify(timeout))
           .replace(`__HMR_ENABLE_OVERLAY__`, JSON.stringify(overlay))
-      } else if (!options?.ssr && code.includes('process.env.NODE_ENV')) {
-        // replace process.env.NODE_ENV instead of defining a global
-        // for it to avoid shimming a `process` object during dev,
-        // avoiding inconsistencies between dev and build
-        return code.replace(
-          /\bprocess\.env\.NODE_ENV\b/g,
-          config.define?.['process.env.NODE_ENV'] ||
-            JSON.stringify(process.env.NODE_ENV || config.mode),
-        )
       }
     },
   }
