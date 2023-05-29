@@ -801,4 +801,16 @@ if (import.meta.hot) {
     )
     await untilUpdated(() => el.textContent(), 'cc')
   })
+
+  test('assets HMR', async () => {
+    const el = await page.$('#logo')
+    await untilBrowserLogAfter(
+      () =>
+        editFile('logo.svg', (code) =>
+          code.replace('height="30px"', 'height="40px"'),
+        ),
+      /Logo updated/,
+    )
+    await untilUpdated(() => el.evaluate((it) => `${it.clientHeight}`), '40')
+  })
 }

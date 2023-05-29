@@ -190,7 +190,7 @@ export function assetPlugin(config: ResolvedConfig): Plugin {
 
       id = id.replace(urlRE, '$1').replace(unnededFinalQueryCharRE, '')
       const url = await fileToUrl(id, config, this)
-      return `export default ${JSON.stringify(url)}`
+      return `export default ${JSON.stringify(`${url}?t=${Date.now()}`)}`
     },
 
     renderChunk(code, chunk, opts) {
