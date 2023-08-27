@@ -803,6 +803,7 @@ if (import.meta.hot) {
   })
 
   test('assets HMR', async () => {
+    await page.goto(viteTestUrl)
     const el = await page.$('#logo')
     await untilBrowserLogAfter(
       () =>
